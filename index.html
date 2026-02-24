@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🏠 お片付けマップ</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #FDFAF4;
+  --warm-white: #FFFFFF;
+  --sage: #A8C5A0;
+  --sage-light: #D4E8D0;
+  --sage-dark: #7DAF74;
+  --peach: #F2A07B;
+  --peach-light: #FAD4BE;
+  --peach-dark: #E07A50;
+  --lavender: #C4B0E0;
+  --lavender-light: #E8DEFF;
+  --sky: #92C5DE;
+  --sky-light: #D4EAF5;
+  --text: #4A4035;
+  --text-mid: #8C7B6B;
+  --text-light: #BDB0A0;
+  --border: #E8E0D0;
+  --shadow: 0 2px 12px rgba(74,64,53,0.10);
+  --shadow-lg: 0 8px 32px rgba(74,64,53,0.16);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family: 'Nunito', 'Zen Maru Gothic', sans-serif;
+  background: var(--cream);
+  min-height: 100vh;
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: var(--warm-white);
+  border-bottom: 2px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: var(--shadow);
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  flex: 1;
+}
+
+.room-select {
+  padding: 7px 12px;
+  border: 2px solid var(--sage);
+  border-radius: 50px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--sage-light);
+  cursor: pointer;
+  outline: none;
+  max-width: 140px;
+}
+
+.btn-add-room {
+  width: 34px; height: 34px;
+  border: 2px dashed var(--sage);
+  border-radius: 50%;
+  background: none;
+  font-size: 18px;
+  color: var(--sage-dark);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.btn-add-room:hover { background: var(--sage-light); }
+
+/* ===== TOOLBAR ===== */
+.toolbar {
+  background: var(--warm-white);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.toolbar-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 4px;
+}
+
+.btn {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 50px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: flex; align-items: center; gap: 5px;
+}
+.btn:active { transform: scale(0.94); }
+.btn-shelf { background: var(--peach-light); color: var(--peach-dark); border: 2px solid var(--peach); }
+.btn-shelf:hover { background: var(--peach); color: white; }
+.btn-box { background: var(--sky-light); color: #5599BB; border: 2px solid var(--sky); }
+.btn-box:hover { background: var(--sky); color: white; }
+.btn-sage { background: var(--sage-light); color: var(--sage-dark); border: 2px solid var(--sage); }
+.btn-sage:hover { background: var(--sage); color: white; }
+.btn-ghost { background: none; color: var(--text-mid); border: 2px solid var(--border); }
+.btn-ghost:hover { border-color: var(--text-mid); }
+
+/* ===== CANVAS AREA ===== */
+.canvas-wrapper {
+  padding: 16px;
+  min-height: calc(100vh - 180px);
+}
+
+.floor-plan {
+  background: var(--warm-white);
+  border: 2.5px solid var(--border);
+  border-radius: var(--radius);
+  position: relative;
+  width: 100%;
+  min-height: 420px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  /* subtle grid */
+  background-image:
+    linear-gradient(rgba(200,190,180,0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,190,180,0.15) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.floor-plan-label {
+  position: absolute;
+  top: 10px; left: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-light);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ===== STORAGE ITEMS ===== */
+.storage-item {
+  position: absolute;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: box-shadow 0.15s, opacity 0.15s;
+  border-radius: var(--radius-sm);
+}
+.storage-item:active { cursor: grabbing; }
+.storage-item.dragging {
+  opacity: 0.85;
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+}
+.storage-item.overlapping {
+  box-shadow: 0 0 0 3px #FF7A7A, var(--shadow);
+}
+
+/* SHELF */
+.shelf-body {
+  background: linear-gradient(145deg, #FAE8D8, #F5D0B5);
+  border: 2.5px solid var(--peach);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.shelf-header {
+  background: var(--peach);
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.shelf-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: white;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shelf-icon { font-size: 12px; flex-shrink: 0; }
+
+.shelf-floors {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 3px;
+  gap: 2px;
+}
+
+.shelf-floor {
+  flex: 1;
+  background: rgba(255,255,255,0.6);
+  border-radius: 4px;
+  border: 1px dashed rgba(242,160,123,0.5);
+  display: flex;
+  align-items: center;
+  padding: 2px 5px;
+  min-height: 18px;
+}
+
+.floor-label {
+  font-size: 9px;
+  color: var(--peach-dark);
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-right: 3px;
+}
+
+.floor-preview {
+  font-size: 9px;
+  color: var(--text-mid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* BOX */
+.box-body {
+  background: linear-gradient(145deg, #DFF0FA, #C8E4F5);
+  border: 2.5px solid var(--sky);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.box-header {
+  background: var(--sky);
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.box-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: white;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.box-preview-area {
+  flex: 1;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+}
+
+.box-preview {
+  font-size: 9px;
+  color: var(--text-mid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== OUTSIDE AREA ===== */
+.outside-section {
+  margin: 0 16px 16px;
+}
+
+.outside-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.outside-area {
+  background: rgba(196,176,224,0.12);
+  border: 2px dashed var(--lavender);
+  border-radius: var(--radius);
+  padding: 12px;
+  min-height: 80px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: flex-start;
+}
+
+.outside-item {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.18s;
+}
+.outside-item:active { transform: scale(0.95); }
+
+.outside-shelf {
+  background: linear-gradient(135deg, #FAE8D8, #F5D0B5);
+  border: 2px solid var(--peach);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.outside-box {
+  background: linear-gradient(135deg, #DFF0FA, #C8E4F5);
+  border: 2px solid var(--sky);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.outside-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.outside-empty {
+  color: var(--text-light);
+  font-size: 13px;
+  width: 100%;
+  text-align: center;
+  padding: 10px 0;
+}
+
+/* ===== POPUP ===== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(74,64,53,0.4);
+  backdrop-filter: blur(3px);
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.18s;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.popup {
+  background: var(--warm-white);
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
+  animation: slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+
+.popup-handle {
+  width: 40px; height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 12px auto 0;
+}
+
+.popup-header {
+  padding: 16px 20px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.popup-icon { font-size: 22px; }
+
+.popup-title-input {
+  flex: 1;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+  border: none;
+  outline: none;
+  background: none;
+}
+
+.popup-close {
+  width: 30px; height: 30px;
+  border: none;
+  background: var(--border);
+  border-radius: 50%;
+  font-size: 14px;
+  color: var(--text-mid);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.popup-body { padding: 16px 20px; }
+
+/* Size selector */
+.size-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.size-btn {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-mid);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+.size-btn.active {
+  border-color: var(--peach);
+  background: var(--peach-light);
+  color: var(--peach-dark);
+}
+.size-btn-box.active {
+  border-color: var(--sky);
+  background: var(--sky-light);
+  color: #5599BB;
+}
+
+/* Floor sections */
+.floor-section {
+  margin-bottom: 14px;
+  background: var(--cream);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.floor-section-header {
+  padding: 9px 14px;
+  background: var(--peach-light);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--peach-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.floor-section-header-box {
+  background: var(--sky-light);
+  color: #5599BB;
+}
+
+.floor-memo {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  resize: none;
+  outline: none;
+  min-height: 70px;
+  line-height: 1.6;
+}
+
+/* Photo area */
+.photo-section {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.photo-thumb {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.photo-thumb:hover { border-color: var(--peach); transform: scale(1.05); }
+
+.photo-add-btn {
+  width: 60px;
+  height: 60px;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--text-light);
+  font-size: 22px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.photo-add-btn:hover { border-color: var(--peach); color: var(--peach); }
+
+.photo-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-light);
+  margin-bottom: 6px;
+}
+
+/* Popup actions */
+.popup-actions {
+  padding: 12px 20px 24px;
+  display: flex;
+  gap: 8px;
+}
+
+.btn-full { flex: 1; justify-content: center; padding: 12px; font-size: 14px; }
+.btn-danger { background: #FFE8E8; color: #D04040; border: 2px solid #FFBABA; }
+.btn-danger:hover { background: #FFBABA; }
+.btn-primary { background: var(--sage-light); color: var(--sage-dark); border: 2px solid var(--sage); }
+.btn-primary:hover { background: var(--sage); color: white; }
+
+/* Photo viewer */
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.18s;
+}
+.photo-viewer img {
+  max-width: 95vw;
+  max-height: 90vh;
+  border-radius: 12px;
+  object-fit: contain;
+}
+.photo-viewer-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(74,64,53,0.92);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: all 0.25s;
+  z-index: 999;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Confirm */
+.confirm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(74,64,53,0.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999;
+  animation: fadeIn 0.15s;
+}
+.confirm-box {
+  background: white;
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  width: 290px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+.confirm-box p { font-size: 15px; color: var(--text); margin-bottom: 20px; line-height: 1.6; font-weight: 600; }
+.confirm-btns { display: flex; gap: 10px; justify-content: center; }
+
+/* Room modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(74,64,53,0.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 400;
+  animation: fadeIn 0.15s;
+}
+.modal-box {
+  background: white;
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  width: 300px;
+  box-shadow: var(--shadow-lg);
+}
+.modal-title { font-size: 16px; font-weight: 800; margin-bottom: 16px; color: var(--text); }
+.modal-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--sage);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  margin-bottom: 16px;
+}
+.modal-input:focus { border-color: var(--sage-dark); }
+
+/* Size info */
+.size-info { font-size: 10px; color: var(--text-light); text-align: center; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-title">🏠 お片付けマップ</div>
+  <select class="room-select" id="room-select" onchange="switchRoom()"></select>
+  <button class="btn-add-room" onclick="addRoom()" title="部屋を追加">＋</button>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <span class="toolbar-label">追加</span>
+  <button class="btn btn-shelf" onclick="openAddPopup('shelf')">🗄 棚</button>
+  <button class="btn btn-box" onclick="openAddPopup('box')">📦 BOX</button>
+  <div style="flex:1"></div>
+  <button class="btn btn-ghost" style="font-size:11px" onclick="exportData()">📤</button>
+  <label class="btn btn-ghost" style="font-size:11px; cursor:pointer">
+    📥 <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+  </label>
+</div>
+
+<!-- CANVAS -->
+<div class="canvas-wrapper">
+  <div class="floor-plan" id="floor-plan">
+    <div class="floor-plan-label" id="floor-label">部屋の図面</div>
+  </div>
+</div>
+
+<!-- OUTSIDE AREA -->
+<div class="outside-section">
+  <div class="outside-title">
+    📦 保管中（図面外）
+    <span style="font-size:10px; font-weight:400; color:var(--text-light)">タップで中身を見る</span>
+  </div>
+  <div class="outside-area" id="outside-area">
+    <div class="outside-empty" id="outside-empty">収納を追加すると、ここにも表示できます</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ADD POPUP (新規作成用) -->
+<div class="overlay" id="add-overlay" style="display:none" onclick="closeAddOverlay(event)">
+  <div class="popup" onclick="event.stopPropagation()">
+    <div class="popup-handle"></div>
+    <div class="popup-header">
+      <div class="popup-icon" id="add-popup-icon">🗄</div>
+      <input class="popup-title-input" id="add-name" placeholder="名前を入力...">
+      <button class="popup-close" onclick="closeAddOverlay()">✕</button>
+    </div>
+    <div class="popup-body">
+      <div style="font-size:12px; font-weight:700; color:var(--text-light); margin-bottom:8px;">サイズを選択</div>
+      <div class="size-selector" id="size-selector">
+        <div>
+          <button class="size-btn active" id="size-s" onclick="selectSize('S')">S</button>
+          <div class="size-info">80×100</div>
+        </div>
+        <div>
+          <button class="size-btn" id="size-m" onclick="selectSize('M')">M</button>
+          <div class="size-info">110×130</div>
+        </div>
+        <div>
+          <button class="size-btn" id="size-l" onclick="selectSize('L')">L</button>
+          <div class="size-info">140×160</div>
+        </div>
+      </div>
+      <div style="font-size:12px; font-weight:700; color:var(--text-light); margin-bottom:6px;">配置場所</div>
+      <div style="display:flex; gap:8px; margin-bottom:4px;">
+        <button class="size-btn active" id="place-plan" onclick="selectPlace('plan')" style="flex:1">図面内</button>
+        <button class="size-btn" id="place-outside" onclick="selectPlace('outside')" style="flex:1">図面外（保管中）</button>
+      </div>
+    </div>
+    <div class="popup-actions">
+      <button class="btn btn-primary btn-full" onclick="confirmAdd()">追加する ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL POPUP (既存アイテム編集用) -->
+<div class="overlay" id="detail-overlay" style="display:none" onclick="closeDetailOverlay(event)">
+  <div class="popup" onclick="event.stopPropagation()">
+    <div class="popup-handle"></div>
+    <div class="popup-header">
+      <div class="popup-icon" id="detail-icon">🗄</div>
+      <input class="popup-title-input" id="detail-name" placeholder="名前">
+      <button class="popup-close" onclick="closeDetailOverlay()">✕</button>
+    </div>
+    <div class="popup-body" id="detail-body"></div>
+    <div class="popup-actions">
+      <button class="btn btn-danger btn-full" onclick="deleteCurrentItem()">🗑 削除</button>
+      <button class="btn btn-primary btn-full" onclick="saveDetail()">保存 ✓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== DATA ==========
+let rooms = [
+  { id: 'room_1', name: 'リビング' },
+  { id: 'room_2', name: '寝室' },
+];
+let currentRoomId = 'room_1';
+// items[roomId] = [ {id, type:'shelf'|'box', name, x, y, size:'S'|'M'|'L', outside:bool, floors:[{memo,photos}], memo:'', photos:[]}, ...]
+let items = { room_1: [], room_2: [] };
+
+const SIZES = {
+  shelf: { S:{w:80,h:100}, M:{w:110,h:130}, L:{w:140,h:160} },
+  box:   { S:{w:80,h:60},  M:{w:110,h:80},  L:{w:140,h:100} }
+};
+
+function currentItems() { return items[currentRoomId] || []; }
+
+// ========== STORAGE ==========
+function save() {
+  try {
+    localStorage.setItem('okatazuke_v1', JSON.stringify({ rooms, currentRoomId, items }));
+  } catch(e) {}
+}
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('okatazuke_v1') || 'null');
+    if (!d) return;
+    rooms = d.rooms || rooms;
+    currentRoomId = d.currentRoomId || rooms[0]?.id || 'room_1';
+    items = d.items || {};
+    rooms.forEach(r => { if (!items[r.id]) items[r.id] = []; });
+  } catch(e) {}
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify({ rooms, currentRoomId, items }, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = `okatazuke_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('📤 エクスポートしたよ！');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      showConfirm('今のデータに上書きしてインポートするよ。\nよろしい？', () => {
+        rooms = d.rooms || rooms;
+        currentRoomId = d.currentRoomId || rooms[0]?.id;
+        items = d.items || {};
+        save();
+        buildRoomSelect();
+        render();
+        showToast('📥 インポート完了！');
+      });
+    } catch { showToast('⚠️ 読み込めなかった…'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ========== ROOMS ==========
+function buildRoomSelect() {
+  const sel = document.getElementById('room-select');
+  sel.innerHTML = rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  sel.value = currentRoomId;
+  document.getElementById('floor-label').textContent = rooms.find(r=>r.id===currentRoomId)?.name || '図面';
+}
+
+function switchRoom() {
+  currentRoomId = document.getElementById('room-select').value;
+  document.getElementById('floor-label').textContent = rooms.find(r=>r.id===currentRoomId)?.name || '図面';
+  save();
+  render();
+}
+
+function addRoom() {
+  showModal('新しい部屋の名前', '', name => {
+    if (!name.trim()) return;
+    const id = 'room_' + Date.now();
+    rooms.push({ id, name: name.trim() });
+    items[id] = [];
+    currentRoomId = id;
+    save();
+    buildRoomSelect();
+    render();
+    showToast('🏠 部屋を追加したよ！');
+  });
+}
+
+// ========== ADD POPUP ==========
+let addType = 'shelf';
+let addSize = 'S';
+let addPlace = 'plan';
+
+function openAddPopup(type) {
+  addType = type;
+  addSize = 'S';
+  addPlace = 'plan';
+  document.getElementById('add-popup-icon').textContent = type === 'shelf' ? '🗄' : '📦';
+  document.getElementById('add-name').value = '';
+  document.getElementById('add-name').placeholder = type === 'shelf' ? '棚の名前...' : 'BOXの名前...';
+  
+  // size buttons style
+  ['S','M','L'].forEach(s => {
+    const btn = document.getElementById('size-' + s.toLowerCase());
+    btn.className = 'size-btn' + (s === 'S' ? ' active' : '');
+    if (type === 'box') btn.className += (s === 'S' ? ' size-btn-box' : '');
+  });
+
+  // update size info
+  updateSizeInfo();
+
+  document.getElementById('place-plan').className = 'size-btn active';
+  document.getElementById('place-outside').className = 'size-btn';
+
+  document.getElementById('add-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('add-name').focus(), 300);
+}
+
+function updateSizeInfo() {
+  const sizes = SIZES[addType];
+  const labels = {S:'小', M:'中', L:'大'};
+  ['S','M','L'].forEach(s => {
+    const info = document.querySelector(`#size-${s.toLowerCase()} + .size-info`);
+    if (info) info.textContent = `${sizes[s].w}×${sizes[s].h}px`;
+  });
+}
+
+function selectSize(s) {
+  addSize = s;
+  ['S','M','L'].forEach(sz => {
+    const btn = document.getElementById('size-' + sz.toLowerCase());
+    btn.className = 'size-btn' + (sz === s ? ' active' : '');
+    if (addType === 'box' && sz === s) btn.className += ' size-btn-box';
+  });
+}
+
+function selectPlace(p) {
+  addPlace = p;
+  document.getElementById('place-plan').className = 'size-btn' + (p==='plan' ? ' active':'');
+  document.getElementById('place-outside').className = 'size-btn' + (p==='outside' ? ' active':'');
+}
+
+function closeAddOverlay(e) {
+  if (!e || e.target === document.getElementById('add-overlay')) {
+    document.getElementById('add-overlay').style.display = 'none';
+  }
+}
+
+function confirmAdd() {
+  const name = document.getElementById('add-name').value.trim() || (addType === 'shelf' ? '棚' : 'BOX');
+  const sz = SIZES[addType][addSize];
+  const plan = document.getElementById('floor-plan');
+  const pw = plan.offsetWidth, ph = plan.offsetHeight;
+
+  const item = {
+    id: 'item_' + Date.now(),
+    type: addType,
+    name,
+    size: addSize,
+    x: Math.max(0, Math.min(pw - sz.w - 8, Math.round((pw - sz.w) / 2))),
+    y: Math.max(0, Math.min(ph - sz.h - 8, Math.round((ph - sz.h) / 2))),
+    outside: addPlace === 'outside',
+    floors: addType === 'shelf' ? [
+      { label:'上段', memo:'', photos:[] },
+      { label:'中段', memo:'', photos:[] },
+      { label:'下段', memo:'', photos:[] }
+    ] : null,
+    memo: '',
+    photos: []
+  };
+
+  if (!items[currentRoomId]) items[currentRoomId] = [];
+  items[currentRoomId].push(item);
+  save();
+  render();
+  closeAddOverlay();
+  showToast(`✨ ${name}を追加したよ！`);
+}
+
+// ========== RENDER ==========
+function render() {
+  renderPlan();
+  renderOutside();
+}
+
+function renderPlan() {
+  const plan = document.getElementById('floor-plan');
+  // Remove all storage items
+  plan.querySelectorAll('.storage-item').forEach(el => el.remove());
+
+  currentItems().filter(it => !it.outside).forEach(item => {
+    const el = createItemEl(item);
+    plan.appendChild(el);
+    makeDraggable(el, item);
+  });
+}
+
+function renderOutside() {
+  const area = document.getElementById('outside-area');
+  const empty = document.getElementById('outside-empty');
+  const outsideItems = currentItems().filter(it => it.outside);
+  
+  // clear non-empty elements
+  area.querySelectorAll('.outside-item').forEach(el => el.remove());
+
+  if (!outsideItems.length) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  outsideItems.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'outside-item ' + (item.type === 'shelf' ? 'outside-shelf' : 'outside-box');
+    el.innerHTML = `<span>${item.type==='shelf'?'🗄':'📦'}</span><span class="outside-label">${escHtml(item.name)}</span>`;
+    el.onclick = () => openDetail(item.id);
+    area.appendChild(el);
+  });
+}
+
+function createItemEl(item) {
+  const sz = SIZES[item.type][item.size];
+  const el = document.createElement('div');
+  el.className = 'storage-item';
+  el.id = 'el_' + item.id;
+  el.style.left = item.x + 'px';
+  el.style.top = item.y + 'px';
+  el.style.width = sz.w + 'px';
+  el.style.height = sz.h + 'px';
+
+  if (item.type === 'shelf') {
+    const preview = item.floors?.map(f => f.memo?.split('\n')[0]).filter(Boolean).slice(0,2).join(' / ') || '';
+    el.innerHTML = `
+      <div class="shelf-body">
+        <div class="shelf-header">
+          <span class="shelf-icon">🗄</span>
+          <span class="shelf-name">${escHtml(item.name)}</span>
+        </div>
+        <div class="shelf-floors">
+          ${(item.floors||[]).map(f=>`
+            <div class="shelf-floor">
+              <span class="floor-label">${f.label}</span>
+              <span class="floor-preview">${escHtml(f.memo?.split('\n')[0]||'')}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  } else {
+    const preview = item.memo?.split('\n')[0] || '';
+    el.innerHTML = `
+      <div class="box-body">
+        <div class="box-header">
+          <span class="shelf-icon">📦</span>
+          <span class="box-name">${escHtml(item.name)}</span>
+        </div>
+        <div class="box-preview-area">
+          <span class="box-preview">${escHtml(preview)}</span>
+        </div>
+      </div>`;
+  }
+
+  // tap to open detail (only if not dragged)
+  el.addEventListener('click', (e) => {
+    if (el._dragged) { el._dragged = false; return; }
+    openDetail(item.id);
+  });
+
+  return el;
+}
+
+// ========== DRAG ==========
+function makeDraggable(el, item) {
+  let startX, startY, origX, origY, moved;
+
+  function onStart(e) {
+    e.preventDefault();
+    const p = e.touches ? e.touches[0] : e;
+    startX = p.clientX; startY = p.clientY;
+    origX = item.x; origY = item.y;
+    moved = false;
+    el.classList.add('dragging');
+    el.style.zIndex = 50;
+  }
+
+  function onMove(e) {
+    const p = e.touches ? e.touches[0] : e;
+    const dx = p.clientX - startX;
+    const dy = p.clientY - startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      moved = true;
+      el._dragged = true;
+    }
+    if (!moved) return;
+
+    const plan = document.getElementById('floor-plan');
+    const rect = plan.getBoundingClientRect();
+    const sz = SIZES[item.type][item.size];
+    const newX = Math.max(0, Math.min(rect.width - sz.w, origX + dx));
+    const newY = Math.max(0, Math.min(rect.height - sz.h, origY + dy));
+
+    item.x = Math.round(newX);
+    item.y = Math.round(newY);
+    el.style.left = item.x + 'px';
+    el.style.top = item.y + 'px';
+
+    checkOverlap(el, item);
+  }
+
+  function onEnd() {
+    el.classList.remove('dragging');
+    el.style.zIndex = '';
+    checkOverlap(el, item);
+    save();
+  }
+
+  el.addEventListener('mousedown', onStart);
+  el.addEventListener('touchstart', onStart, { passive: false });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mouseup', onEnd);
+  document.addEventListener('touchend', onEnd);
+}
+
+function checkOverlap(el, item) {
+  const sz = SIZES[item.type][item.size];
+  const others = currentItems().filter(it => !it.outside && it.id !== item.id);
+  let overlapping = false;
+  for (const other of others) {
+    const osz = SIZES[other.type][other.size];
+    if (
+      item.x < other.x + osz.w &&
+      item.x + sz.w > other.x &&
+      item.y < other.y + osz.h &&
+      item.y + sz.h > other.y
+    ) { overlapping = true; break; }
+  }
+  el.classList.toggle('overlapping', overlapping);
+}
+
+// ========== DETAIL POPUP ==========
+let currentItemId = null;
+
+function openDetail(id) {
+  const item = currentItems().find(it => it.id === id);
+  if (!item) return;
+  currentItemId = id;
+
+  document.getElementById('detail-icon').textContent = item.type === 'shelf' ? '🗄' : '📦';
+  document.getElementById('detail-name').value = item.name;
+
+  const body = document.getElementById('detail-body');
+
+  if (item.type === 'shelf') {
+    body.innerHTML = (item.floors||[]).map((f, fi) => `
+      <div class="floor-section">
+        <div class="floor-section-header">
+          <span>${['⬆️','➡️','⬇️'][fi]}</span> ${f.label}
+        </div>
+        <textarea class="floor-memo" id="floor-memo-${fi}" placeholder="ここに何をしまってるか...&#10;例: タオル×3, 洗剤ストック">${escHtml(f.memo||'')}</textarea>
+        <div class="photo-section">
+          <div style="width:100%; margin-bottom:6px"><div class="photo-label">📷 写真</div></div>
+          ${(f.photos||[]).map((ph,pi)=>`
+            <img class="photo-thumb" src="${ph}" onclick="viewPhoto('${ph}')" alt="写真">
+            <button style="display:none" onclick="removePhoto(${fi},${pi})">×</button>
+          `).join('')}
+          <label class="photo-add-btn" title="写真を追加">
+            ＋
+            <input type="file" accept="image/*" style="display:none" onchange="addPhoto(event,${fi})">
+          </label>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    body.innerHTML = `
+      <div class="floor-section">
+        <div class="floor-section-header floor-section-header-box">
+          <span>📦</span> 中身メモ
+        </div>
+        <textarea class="floor-memo" id="box-memo" placeholder="中身を書いてみよう...&#10;例: 夏物服, ブランケット">${escHtml(item.memo||'')}</textarea>
+        <div class="photo-section">
+          <div style="width:100%; margin-bottom:6px"><div class="photo-label">📷 写真</div></div>
+          ${(item.photos||[]).map((ph,pi)=>`
+            <img class="photo-thumb" src="${ph}" onclick="viewPhoto('${ph}')" alt="写真">
+          `).join('')}
+          <label class="photo-add-btn">
+            ＋
+            <input type="file" accept="image/*" style="display:none" onchange="addPhotoBox(event)">
+          </label>
+        </div>
+      </div>
+
+      <div style="padding:10px 0 0; font-size:12px; font-weight:700; color:var(--text-light); margin:0 0 6px">配置場所の変更</div>
+      <div style="display:flex; gap:8px; margin-bottom:4px;">
+        <button class="size-btn ${!item.outside?'active':''}" id="detail-place-plan" onclick="toggleOutside(false)" style="flex:1">図面内</button>
+        <button class="size-btn ${item.outside?'active':''}" id="detail-place-outside" onclick="toggleOutside(true)" style="flex:1">図面外（保管中）</button>
+      </div>
+    `;
+  }
+
+  // Also add location toggle for shelves
+  if (item.type === 'shelf') {
+    body.innerHTML += `
+      <div style="margin-top:12px; font-size:12px; font-weight:700; color:var(--text-light); margin-bottom:6px">配置場所の変更</div>
+      <div style="display:flex; gap:8px;">
+        <button class="size-btn ${!item.outside?'active':''}" id="detail-place-plan" onclick="toggleOutside(false)" style="flex:1">図面内</button>
+        <button class="size-btn ${item.outside?'active':''}" id="detail-place-outside" onclick="toggleOutside(true)" style="flex:1">図面外（保管中）</button>
+      </div>
+    `;
+  }
+
+  document.getElementById('detail-overlay').style.display = 'flex';
+}
+
+function toggleOutside(val) {
+  document.getElementById('detail-place-plan').className = 'size-btn' + (!val ? ' active':'');
+  document.getElementById('detail-place-outside').className = 'size-btn' + (val ? ' active':'');
+  const item = currentItems().find(it => it.id === currentItemId);
+  if (item) item._pendingOutside = val;
+}
+
+function addPhoto(e, floorIndex) {
+  const file = e.target.files[0];
+  if (!file) return;
+  resizeImage(file, (dataUrl) => {
+    const item = currentItems().find(it => it.id === currentItemId);
+    if (!item || !item.floors) return;
+    item.floors[floorIndex].photos = item.floors[floorIndex].photos || [];
+    item.floors[floorIndex].photos.push(dataUrl);
+    save();
+    openDetail(currentItemId);
+    showToast('📷 写真を追加したよ！');
+  });
+  e.target.value = '';
+}
+
+function addPhotoBox(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  resizeImage(file, (dataUrl) => {
+    const item = currentItems().find(it => it.id === currentItemId);
+    if (!item) return;
+    item.photos = item.photos || [];
+    item.photos.push(dataUrl);
+    save();
+    openDetail(currentItemId);
+    showToast('📷 写真を追加したよ！');
+  });
+  e.target.value = '';
+}
+
+function resizeImage(file, cb) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 800, maxH = 600;
+      let w = img.width, h = img.height;
+      if (w > maxW || h > maxH) {
+        const ratio = Math.min(maxW/w, maxH/h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(canvas.toDataURL('image/jpeg', 0.75));
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function viewPhoto(src) {
+  const v = document.createElement('div');
+  v.className = 'photo-viewer';
+  v.innerHTML = `<button class="photo-viewer-close" onclick="this.parentElement.remove()">✕</button><img src="${src}" alt="写真">`;
+  v.onclick = e => { if (e.target === v) v.remove(); };
+  document.body.appendChild(v);
+}
+
+function saveDetail() {
+  const item = currentItems().find(it => it.id === currentItemId);
+  if (!item) return;
+
+  item.name = document.getElementById('detail-name').value.trim() || item.name;
+
+  if (item.type === 'shelf') {
+    (item.floors||[]).forEach((f, fi) => {
+      const ta = document.getElementById(`floor-memo-${fi}`);
+      if (ta) f.memo = ta.value;
+    });
+  } else {
+    const ta = document.getElementById('box-memo');
+    if (ta) item.memo = ta.value;
+  }
+
+  if (item._pendingOutside !== undefined) {
+    item.outside = item._pendingOutside;
+    delete item._pendingOutside;
+  }
+
+  save();
+  render();
+  closeDetailOverlay();
+  showToast('✅ 保存したよ！');
+}
+
+function deleteCurrentItem() {
+  showConfirm('この収納を削除するよ。\nよろしい？', () => {
+    items[currentRoomId] = currentItems().filter(it => it.id !== currentItemId);
+    save();
+    render();
+    closeDetailOverlay();
+    showToast('🗑 削除したよ');
+  });
+}
+
+function closeDetailOverlay(e) {
+  if (!e || e.target === document.getElementById('detail-overlay')) {
+    document.getElementById('detail-overlay').style.display = 'none';
+  }
+}
+
+// ========== UTILS ==========
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function showConfirm(msg, onOk) {
+  const ov = document.createElement('div');
+  ov.className = 'confirm-overlay';
+  ov.innerHTML = `<div class="confirm-box">
+    <p>${msg.replace(/\n/g,'<br>')}</p>
+    <div class="confirm-btns">
+      <button class="btn btn-ghost" onclick="this.closest('.confirm-overlay').remove()">キャンセル</button>
+      <button class="btn btn-sage" id="conf-ok">OK</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#conf-ok').onclick = () => { ov.remove(); onOk(); };
+}
+
+function showModal(title, placeholder, cb) {
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.innerHTML = `<div class="modal-box">
+    <div class="modal-title">${title}</div>
+    <input class="modal-input" id="modal-inp" placeholder="${placeholder || '入力してね...'}">
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-ghost" style="flex:1" onclick="this.closest('.modal-overlay').remove()">キャンセル</button>
+      <button class="btn btn-sage" style="flex:1" id="modal-ok">OK</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const inp = ov.querySelector('#modal-inp');
+  setTimeout(() => inp.focus(), 100);
+  inp.addEventListener('keydown', e => { if(e.key==='Enter') { ov.remove(); cb(inp.value); }});
+  ov.querySelector('#modal-ok').onclick = () => { ov.remove(); cb(inp.value); };
+}
+
+// ========== INIT ==========
+load();
+buildRoomSelect();
+render();
+</script>
+</body>
+</html>
