@@ -1037,55 +1037,70 @@ function createItemEl(item) {
 
 // ========== DRAG ==========
 function makeDraggable(el, item) {
-  let startX, startY, origX, origY, moved;
 
   function onStart(e) {
+    // テキストエリア・ボタン・input はドラッグ対象外
+    if (e.target.closest('textarea, button, input, label')) return;
+
     e.preventDefault();
     const p = e.touches ? e.touches[0] : e;
-    startX = p.clientX; startY = p.clientY;
-    origX = item.x; origY = item.y;
-    moved = false;
+    const startX = p.clientX;
+    const startY = p.clientY;
+    const origX  = item.x;
+    const origY  = item.y;
+    let moved = false;
+
     el.classList.add('dragging');
     el.style.zIndex = 50;
-  }
 
-  function onMove(e) {
-    const p = e.touches ? e.touches[0] : e;
-    const dx = p.clientX - startX;
-    const dy = p.clientY - startY;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
-      moved = true;
+    function onMove(ev) {
+      const pp = ev.touches ? ev.touches[0] : ev;
+      const dx = pp.clientX - startX;
+      const dy = pp.clientY - startY;
+
+      if (!moved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+        moved = true;
+      }
+      if (!moved) return;
+
+      ev.preventDefault();
       el._dragged = true;
+
+      const plan = document.getElementById('floor-plan');
+      const rect = plan.getBoundingClientRect();
+      const sz = SIZES[item.type][item.size];
+
+      item.x = Math.round(Math.max(0, Math.min(rect.width  - sz.w, origX + dx)));
+      item.y = Math.round(Math.max(0, Math.min(rect.height - sz.h, origY + dy)));
+      el.style.left = item.x + 'px';
+      el.style.top  = item.y + 'px';
+
+      checkOverlap(el, item);
     }
-    if (!moved) return;
 
-    const plan = document.getElementById('floor-plan');
-    const rect = plan.getBoundingClientRect();
-    const sz = SIZES[item.type][item.size];
-    const newX = Math.max(0, Math.min(rect.width - sz.w, origX + dx));
-    const newY = Math.max(0, Math.min(rect.height - sz.h, origY + dy));
+    function onEnd() {
+      el.classList.remove('dragging');
+      el.style.zIndex = '';
+      checkOverlap(el, item);
+      if (moved) save();
 
-    item.x = Math.round(newX);
-    item.y = Math.round(newY);
-    el.style.left = item.x + 'px';
-    el.style.top = item.y + 'px';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup',   onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend',  onEnd);
 
-    checkOverlap(el, item);
+      // クリック判定をリセット（少し遅延させてclickイベントより後に実行）
+      setTimeout(() => { el._dragged = false; }, 50);
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend',  onEnd);
   }
 
-  function onEnd() {
-    el.classList.remove('dragging');
-    el.style.zIndex = '';
-    checkOverlap(el, item);
-    save();
-  }
-
-  el.addEventListener('mousedown', onStart);
+  el.addEventListener('mousedown',  onStart);
   el.addEventListener('touchstart', onStart, { passive: false });
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('touchmove', onMove, { passive: false });
-  document.addEventListener('mouseup', onEnd);
-  document.addEventListener('touchend', onEnd);
 }
 
 function checkOverlap(el, item) {
