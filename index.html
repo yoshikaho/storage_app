@@ -727,6 +727,15 @@ body {
           <div class="size-info">140×160</div>
         </div>
       </div>
+      <div id="floor-count-row" style="margin-bottom:14px;">
+        <div style="font-size:12px; font-weight:700; color:var(--text-light); margin-bottom:6px;">段数</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button class="btn btn-ghost" style="width:34px;height:34px;padding:0;font-size:18px;flex-shrink:0" onclick="changeFloorCount(-1)">－</button>
+          <span id="floor-count-display" style="font-size:16px;font-weight:800;color:var(--text);min-width:30px;text-align:center;">3</span>
+          <button class="btn btn-ghost" style="width:34px;height:34px;padding:0;font-size:18px;flex-shrink:0" onclick="changeFloorCount(1)">＋</button>
+          <span style="font-size:12px;color:var(--text-light)">段（1〜10）</span>
+        </div>
+      </div>
       <div style="font-size:12px; font-weight:700; color:var(--text-light); margin-bottom:6px;">配置場所</div>
       <div style="display:flex; gap:8px; margin-bottom:4px;">
         <button class="size-btn active" id="place-plan" onclick="selectPlace('plan')" style="flex:1">図面内</button>
@@ -857,15 +866,21 @@ function addRoom() {
 let addType = 'shelf';
 let addSize = 'S';
 let addPlace = 'plan';
+let addFloorCount = 3;
 
 function openAddPopup(type) {
   addType = type;
   addSize = 'S';
   addPlace = 'plan';
+  addFloorCount = 3;
   document.getElementById('add-popup-icon').textContent = type === 'shelf' ? '🗄' : '📦';
   document.getElementById('add-name').value = '';
   document.getElementById('add-name').placeholder = type === 'shelf' ? '棚の名前...' : 'BOXの名前...';
   
+  // 棚のときだけ段数セレクターを表示
+  document.getElementById('floor-count-row').style.display = type === 'shelf' ? 'block' : 'none';
+  document.getElementById('floor-count-display').textContent = addFloorCount;
+
   // size buttons style
   ['S','M','L'].forEach(s => {
     const btn = document.getElementById('size-' + s.toLowerCase());
@@ -873,7 +888,6 @@ function openAddPopup(type) {
     if (type === 'box') btn.className += (s === 'S' ? ' size-btn-box' : '');
   });
 
-  // update size info
   updateSizeInfo();
 
   document.getElementById('place-plan').className = 'size-btn active';
@@ -881,6 +895,11 @@ function openAddPopup(type) {
 
   document.getElementById('add-overlay').style.display = 'flex';
   setTimeout(() => document.getElementById('add-name').focus(), 300);
+}
+
+function changeFloorCount(delta) {
+  addFloorCount = Math.max(1, Math.min(10, addFloorCount + delta));
+  document.getElementById('floor-count-display').textContent = addFloorCount;
 }
 
 function updateSizeInfo() {
@@ -913,6 +932,15 @@ function closeAddOverlay(e) {
   }
 }
 
+function makeFloors(count) {
+  const labels = ['上段','中段','下段','4段目','5段目','6段目','7段目','8段目','9段目','10段目'];
+  return Array.from({length: count}, (_, i) => ({
+    label: count <= 3 ? (labels[i] || `${i+1}段目`) : `${i+1}段目`,
+    memo: '',
+    photos: []
+  }));
+}
+
 function confirmAdd() {
   const name = document.getElementById('add-name').value.trim() || (addType === 'shelf' ? '棚' : 'BOX');
   const sz = SIZES[addType][addSize];
@@ -927,11 +955,7 @@ function confirmAdd() {
     x: Math.max(0, Math.min(pw - sz.w - 8, Math.round((pw - sz.w) / 2))),
     y: Math.max(0, Math.min(ph - sz.h - 8, Math.round((ph - sz.h) / 2))),
     outside: addPlace === 'outside',
-    floors: addType === 'shelf' ? [
-      { label:'上段', memo:'', photos:[] },
-      { label:'中段', memo:'', photos:[] },
-      { label:'下段', memo:'', photos:[] }
-    ] : null,
+    floors: addType === 'shelf' ? makeFloors(addFloorCount) : null,
     memo: '',
     photos: []
   };
@@ -985,6 +1009,10 @@ function renderOutside() {
   });
 }
 
+function truncateName(name, max = 5) {
+  return name.length > max ? name.slice(0, max) + '…' : name;
+}
+
 function createItemEl(item) {
   const sz = SIZES[item.type][item.size];
   const el = document.createElement('div');
@@ -996,12 +1024,11 @@ function createItemEl(item) {
   el.style.height = sz.h + 'px';
 
   if (item.type === 'shelf') {
-    const preview = item.floors?.map(f => f.memo?.split('\n')[0]).filter(Boolean).slice(0,2).join(' / ') || '';
     el.innerHTML = `
       <div class="shelf-body">
         <div class="shelf-header">
           <span class="shelf-icon">🗄</span>
-          <span class="shelf-name">${escHtml(item.name)}</span>
+          <span class="shelf-name">${escHtml(truncateName(item.name))}</span>
         </div>
         <div class="shelf-floors">
           ${(item.floors||[]).map(f=>`
@@ -1018,7 +1045,7 @@ function createItemEl(item) {
       <div class="box-body">
         <div class="box-header">
           <span class="shelf-icon">📦</span>
-          <span class="box-name">${escHtml(item.name)}</span>
+          <span class="box-name">${escHtml(truncateName(item.name))}</span>
         </div>
         <div class="box-preview-area">
           <span class="box-preview">${escHtml(preview)}</span>
@@ -1026,8 +1053,13 @@ function createItemEl(item) {
       </div>`;
   }
 
+  // 内部要素のpointer-eventsをnoneにしてタップを全面で受け取る
+  el.querySelectorAll('*').forEach(child => {
+    child.style.pointerEvents = 'none';
+  });
+
   // tap to open detail (only if not dragged)
-  el.addEventListener('click', (e) => {
+  el.addEventListener('click', () => {
     if (el._dragged) { el._dragged = false; return; }
     openDetail(item.id);
   });
@@ -1133,25 +1165,26 @@ function openDetail(id) {
   const body = document.getElementById('detail-body');
 
   if (item.type === 'shelf') {
-    body.innerHTML = (item.floors||[]).map((f, fi) => `
+    body.innerHTML = (item.floors||[]).map((f, fi) => {
+      const icon = fi === 0 ? '⬆️' : fi === (item.floors.length-1) ? '⬇️' : '➡️';
+      return `
       <div class="floor-section">
         <div class="floor-section-header">
-          <span>${['⬆️','➡️','⬇️'][fi]}</span> ${f.label}
+          <span>${icon}</span> ${f.label}
         </div>
         <textarea class="floor-memo" id="floor-memo-${fi}" placeholder="ここに何をしまってるか...&#10;例: タオル×3, 洗剤ストック">${escHtml(f.memo||'')}</textarea>
         <div class="photo-section">
           <div style="width:100%; margin-bottom:6px"><div class="photo-label">📷 写真</div></div>
           ${(f.photos||[]).map((ph,pi)=>`
             <img class="photo-thumb" src="${ph}" onclick="viewPhoto('${ph}')" alt="写真">
-            <button style="display:none" onclick="removePhoto(${fi},${pi})">×</button>
           `).join('')}
           <label class="photo-add-btn" title="写真を追加">
             ＋
             <input type="file" accept="image/*" style="display:none" onchange="addPhoto(event,${fi})">
           </label>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   } else {
     body.innerHTML = `
       <div class="floor-section">
