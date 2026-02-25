@@ -1074,7 +1074,10 @@ function makeDraggable(el, item) {
     // テキストエリア・ボタン・input はドラッグ対象外
     if (e.target.closest('textarea, button, input, label')) return;
 
-    e.preventDefault();
+    // mousedownのみ即preventDefault（テキスト選択防止）
+    // touchstartではpreventDefaultしない → clickイベントを殺さないため
+    if (!e.touches) e.preventDefault();
+
     const p = e.touches ? e.touches[0] : e;
     const startX = p.clientX;
     const startY = p.clientY;
@@ -1082,21 +1085,21 @@ function makeDraggable(el, item) {
     const origY  = item.y;
     let moved = false;
 
-    el.classList.add('dragging');
-    el.style.zIndex = 50;
-
     function onMove(ev) {
       const pp = ev.touches ? ev.touches[0] : ev;
       const dx = pp.clientX - startX;
       const dy = pp.clientY - startY;
 
-      if (!moved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+      if (!moved && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
         moved = true;
+        el._dragged = true;
+        el.classList.add('dragging');
+        el.style.zIndex = 50;
       }
       if (!moved) return;
 
+      // ドラッグ確定後にpreventDefault（スクロール防止）
       ev.preventDefault();
-      el._dragged = true;
 
       const plan = document.getElementById('floor-plan');
       const rect = plan.getBoundingClientRect();
@@ -1121,7 +1124,6 @@ function makeDraggable(el, item) {
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend',  onEnd);
 
-      // クリック判定をリセット（少し遅延させてclickイベントより後に実行）
       setTimeout(() => { el._dragged = false; }, 50);
     }
 
